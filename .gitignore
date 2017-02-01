@@ -1,0 +1,6 @@
+*.opendb
+*.tlog
+ui_*.h
+moc_*.cpp
+qrc_*.cpp
+TicTacToe.VC.db
