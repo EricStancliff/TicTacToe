@@ -39,7 +39,6 @@ void OSGViewerWidget::resizeGL(int width, int height)
     m_compViewer->getCameras(cameras);
 
     cameras[0]->setViewport(0, 0, width / 2, height);
-    cameras[1]->setViewport(width / 2, 0, width / 2, height);
 }
 
 void OSGViewerWidget::paintEvent(QPaintEvent* paintEvent)
