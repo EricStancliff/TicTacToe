@@ -4,3 +4,4 @@ ui_*.h
 moc_*.cpp
 qrc_*.cpp
 TicTacToe.VC.db
+ipch/TICTACTOE-851c735e/TICTACTOE-8754ce04.ipch
