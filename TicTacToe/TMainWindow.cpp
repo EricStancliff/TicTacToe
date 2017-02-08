@@ -18,8 +18,13 @@ TMainWindow::TMainWindow(QWidget *parent)
     //create my openGL widget and put in the center
     createOpenGLContext();
 
+    //Tool Bar Actions
     connect(m_ui.actionNew_Game, SIGNAL(triggered(bool)), this, SLOT(handleNewGame()));
     connect(m_ui.actionUndo, SIGNAL(triggered(bool)), this, SLOT(handleUndo()));
+
+    //Menu Actions
+    connect(m_ui.actionAbout, SIGNAL(triggered(bool)), this, SLOT(handleAbout()));
+    connect(m_ui.actionExit, SIGNAL(triggered(bool)), this, SLOT(handleQuit()));
 }
 
 void TMainWindow::handleQuit()
@@ -35,6 +40,7 @@ void TMainWindow::handleAbout()
     QMessageBox* msgBox = new QMessageBox(this);  //parenting for positioning, not memory cleanup
     msgBox->setText("Sample TicTacToe by EStancliff");
     //clean up memory on close
+    msgBox->setModal(false);
     msgBox->setAttribute(Qt::WA_DeleteOnClose);
     msgBox->show();
 }
