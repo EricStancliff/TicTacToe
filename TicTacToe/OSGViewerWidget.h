@@ -17,6 +17,8 @@ public:
     OSGViewerWidget(QWidget* parent = nullptr, Qt::WindowFlags f = Qt::WindowFlags());
     virtual ~OSGViewerWidget();
 
+    osgViewer::CompositeViewer* getOSGViewer() const { return m_compViewer; };
+
 protected:
 
     virtual void paintEvent(QPaintEvent* paintEvent);

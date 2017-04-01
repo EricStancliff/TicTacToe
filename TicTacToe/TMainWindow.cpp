@@ -7,6 +7,7 @@
 #include "OSGViewerWidget.h"
 #include "GraphicsThread.h"
 #include "GameMoveManager.h"
+#include <QOpenGLContext>
 
 TMainWindow::TMainWindow(QWidget *parent)
     : QMainWindow(parent),
@@ -71,4 +72,14 @@ void TMainWindow::createOpenGLContext()
 
     //add to the main layout
     mainLayout->addWidget(m_glWidget);
+
+    auto osgViewer = m_glWidget->getOSGViewer();
+    auto glContext = m_glWidget->context();
+
+    //move graphics to current thread
+    tApp->getGraphicsThread()->addTask([osgViewer, glContext]() {
+        tApp->getGraphicsThread()->setOSGViewer(osgViewer);
+        tApp->getGraphicsThread()->init();
+    });
+
 }

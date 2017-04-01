@@ -2,6 +2,8 @@
 
 #include "osgViewer/CompositeViewer"
 #include "osgViewer/GraphicsWindow"
+#include <osgGA/TrackballManipulator>
+
 
 OSGViewerWidget::OSGViewerWidget(QWidget* parent, Qt::WindowFlags f) :
     QOpenGLWidget(parent, f),
@@ -15,11 +17,12 @@ OSGViewerWidget::OSGViewerWidget(QWidget* parent, Qt::WindowFlags f) :
 
     osg::Camera* camera = new osg::Camera;
     camera->setViewport(0, 0, this->width(), this->height());
-    camera->setClearColor(osg::Vec4(0.f, 0.f, 1.f, 1.f));
+    //camera->setClearColor(osg::Vec4(0.f, 0.f, 1.f, 1.f));
     camera->setGraphicsContext(m_graphWindow);
 
     osgViewer::View* view = new osgViewer::View;
     view->setCamera(camera);
+    view->setCameraManipulator(new osgGA::TrackballManipulator());
 
     m_compViewer->addView(view);
     m_compViewer->setThreadingModel(osgViewer::CompositeViewer::SingleThreaded);
@@ -43,10 +46,10 @@ void OSGViewerWidget::resizeGL(int width, int height)
 
 void OSGViewerWidget::paintEvent(QPaintEvent* paintEvent)
 {
-
+    QOpenGLWidget::paintEvent(paintEvent);
 }
 
 void OSGViewerWidget::paintGL()
 {
-
+    
 }
