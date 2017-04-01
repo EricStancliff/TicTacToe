@@ -1,16 +1,14 @@
 #pragma once
 
 #include <functional>
+#include <condition_variable>
 
 #include <osg/ref_ptr>
 
 #include <QThread>
 #include <QReadWriteLock>
 
-namespace osgViewer
-{
-    class CompositeViewer;
-}
+#include <OSGViewerWidget.h>
 
 namespace osg
 {
@@ -30,11 +28,14 @@ public:
 
     void init();
 
-    void setOSGViewer(osgViewer::CompositeViewer* osgViewer) { m_osgViewer = osgViewer; };
+    void setOSGViewer(OSGViewerWidget* osgViewer) {m_osgViewer = osgViewer; };
 
     //post a function to execute later in Graphics Thread
     //be sure to check the scope of your variables in your lambdas!
     void addTask(std::function<void()> task);
+
+    //add a task and block until it's completion
+    void addTaskBlocking(std::function<void()> task);
 
 protected:
     virtual void run();
@@ -43,11 +44,15 @@ protected:
 
     std::vector < std::function<void()>> m_tasks;
     
-    osgViewer::CompositeViewer* m_osgViewer;
+    OSGViewerWidget* m_osgViewer;
 
-    QReadWriteLock m_taskRWLock;
+    QReadWriteLock m_RWLock;
 
     osg::ref_ptr<osg::Group> m_rootGroup;
 
+    std::condition_variable m_condition;
+    std::mutex m_conditionMutex;
+
     bool m_done;
+    bool m_threadsWaiting;
 };

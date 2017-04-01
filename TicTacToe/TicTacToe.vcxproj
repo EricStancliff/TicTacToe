@@ -53,7 +53,7 @@
       <OutputFile>$(OutDir)\$(ProjectName).exe</OutputFile>
       <AdditionalLibraryDirectories>$(QTDIR)\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>qtmaind.lib;Qt5Concurrentd.lib;Qt5Cored.lib;Qt5Guid.lib;Qt5OpenGLd.lib;opengl32.lib;glu32.lib;Qt5UiToolsd.lib;Qt5Widgetsd.lib;Qt5Xmld.lib;%EXTERNAL%\osg\lib\osgd.lib;%EXTERNAL%\osg\lib\osgDBd.lib;%EXTERNAL%\osg\lib\osgTextd.lib;%EXTERNAL%\osg\lib\osgUtild.lib;%EXTERNAL%\osg\lib\osgViewerd.lib;%EXTERNAL%\osg\lib\osgWidgetd.lib;%EXTERNAL%\osg\lib\osgGAd.lib;%EXTERNAL%\osg\lib\OpenThreadsd.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>qtmaind.lib;Qt5Concurrentd.lib;Qt5Cored.lib;Qt5Guid.lib;Qt5OpenGLd.lib;opengl32.lib;glu32.lib;Qt5UiToolsd.lib;Qt5Widgetsd.lib;Qt5Xmld.lib;%EXTERNAL%\osg\lib\osgd.lib;%EXTERNAL%\osg\lib\osgDBd.lib;%EXTERNAL%\osg\lib\osgTextd.lib;%EXTERNAL%\osg\lib\osgUtild.lib;%EXTERNAL%\osg\lib\osgViewerd.lib;%EXTERNAL%\osg\lib\osgWidgetd.lib;%EXTERNAL%\osg\lib\osgGAd.lib;%EXTERNAL%\osg\lib\osgQtd.lib;%EXTERNAL%\osg\lib\OpenThreadsd.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -73,7 +73,7 @@
       <OutputFile>$(OutDir)\$(ProjectName).exe</OutputFile>
       <AdditionalLibraryDirectories>$(QTDIR)\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <GenerateDebugInformation>false</GenerateDebugInformation>
-      <AdditionalDependencies>qtmain.lib;Qt5Concurrent.lib;Qt5Core.lib;Qt5Gui.lib;Qt5OpenGL.lib;opengl32.lib;glu32.lib;Qt5UiTools.lib;Qt5Widgets.lib;Qt5Xml.lib;%EXTERNAL%\osg\lib\osg.lib;%EXTERNAL%\osg\lib\osgDB.lib;%EXTERNAL%\osg\lib\osgText.lib;%EXTERNAL%\osg\lib\osgUtil.lib;%EXTERNAL%\osg\lib\osgViewer.lib;%EXTERNAL%\osg\lib\osgWidget.lib;%EXTERNAL%\osg\lib\osgGA.lib;%EXTERNAL%\osg\lib\OpenThreads.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>qtmain.lib;Qt5Concurrent.lib;Qt5Core.lib;Qt5Gui.lib;Qt5OpenGL.lib;opengl32.lib;glu32.lib;Qt5UiTools.lib;Qt5Widgets.lib;Qt5Xml.lib;%EXTERNAL%\osg\lib\osg.lib;%EXTERNAL%\osg\lib\osgDB.lib;%EXTERNAL%\osg\lib\osgText.lib;%EXTERNAL%\osg\lib\osgUtil.lib;%EXTERNAL%\osg\lib\osgViewer.lib;%EXTERNAL%\osg\lib\osgWidget.lib;%EXTERNAL%\osg\lib\osgGA.lib;%EXTERNAL%\osg\lib\osgQt.lib;%EXTERNAL%\osg\lib\OpenThreads.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>

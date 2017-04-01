@@ -2,6 +2,9 @@
 #include <QMessageBox>
 #include <QVBoxLayout>
 
+#include <osgQt/GraphicsWindowQt>
+
+
 #include "TMainWindow.h"
 #include "TApp.h"
 #include "OSGViewerWidget.h"
@@ -27,6 +30,23 @@ TMainWindow::TMainWindow(QWidget *parent)
     connect(m_ui.actionAbout, SIGNAL(triggered(bool)), this, SLOT(handleAbout()));
     connect(m_ui.actionExit, SIGNAL(triggered(bool)), this, SLOT(handleQuit()));
 }
+
+TMainWindow::~TMainWindow()
+{
+    //tell graphics that we want our viewer back
+    tApp->getGraphicsThread()->setOSGViewer(nullptr);
+
+    auto mainThread = QThread::currentThread();
+    auto osgViewer = m_glWidget;
+
+    tApp->getGraphicsThread()->addTaskBlocking([mainThread, osgViewer]() {
+        //move to our thread
+        auto glWidgetList = osgViewer->getGLWidgets();
+        for (auto&& glWidget : glWidgetList)
+            glWidget->context()->moveToThread(mainThread);
+    });
+}
+
 
 void TMainWindow::handleQuit()
 {
@@ -73,11 +93,22 @@ void TMainWindow::createOpenGLContext()
     //add to the main layout
     mainLayout->addWidget(m_glWidget);
 
-    auto osgViewer = m_glWidget->getOSGViewer();
-    auto glContext = m_glWidget->context();
+    auto osgViewer = m_glWidget;
+
+    //render first time in this thread, and let it draw to get
+    //around Qt's rules on thread affinity for OpenGLContext and
+    //swapping buffers on hidden objects.
+    osgViewer->frame();
+    QApplication::processEvents();
+
+    //move to graphics thread
+    auto glWidgetList = osgViewer->getGLWidgets();
+    for (auto&& glWidget : glWidgetList)
+        glWidget->context()->moveToThread(tApp->getGraphicsThread());
+
 
     //move graphics to current thread
-    tApp->getGraphicsThread()->addTask([osgViewer, glContext]() {
+    tApp->getGraphicsThread()->addTaskBlocking([osgViewer]() {
         tApp->getGraphicsThread()->setOSGViewer(osgViewer);
         tApp->getGraphicsThread()->init();
     });

@@ -1,55 +1,71 @@
 #include "OSGViewerWidget.h"
 
-#include "osgViewer/CompositeViewer"
-#include "osgViewer/GraphicsWindow"
-#include <osgGA/TrackballManipulator>
+
+//osg
+#include <osgViewer/CompositeViewer>
+#include <osgViewer/ViewerEventHandlers>
+#include <osgGA/MultiTouchTrackballManipulator>
+#include <osgDB/ReadFile>
+#include <osgQt/GraphicsWindowQt>
+
+//Qt
+#include <QGridLayout>
+
+#include <iostream>
 
 
-OSGViewerWidget::OSGViewerWidget(QWidget* parent, Qt::WindowFlags f) :
-    QOpenGLWidget(parent, f),
-    m_graphWindow(nullptr),
-    m_compViewer(nullptr)
+
+OSGViewerWidget::OSGViewerWidget(QWidget* parent, Qt::WindowFlags f, osgViewer::ViewerBase::ThreadingModel threadingModel) : QWidget(parent, f)
 {
+    setThreadingModel(threadingModel);
 
-    m_graphWindow = new osgViewer::GraphicsWindowEmbedded(this->x(), this->y(),this->width(), this->height());
+    // disable the default setting of viewer.done() by pressing Escape.
+    setKeyEventSetsDone(0);
 
-    m_compViewer = new osgViewer::CompositeViewer;
+    osgQt::GLWidget* widget1 = addViewWidget(createGraphicsWindow(0, 0, 100, 100));
 
-    osg::Camera* camera = new osg::Camera;
-    camera->setViewport(0, 0, this->width(), this->height());
-    //camera->setClearColor(osg::Vec4(0.f, 0.f, 1.f, 1.f));
-    camera->setGraphicsContext(m_graphWindow);
+    QHBoxLayout* layout = new QHBoxLayout;
+    layout->addWidget(widget1, 0, 0);
+    setLayout(layout);
 
+    m_qglWidgets.push_back(widget1);
+}
+
+osgQt::GLWidget* OSGViewerWidget::addViewWidget(osgQt::GraphicsWindowQt* gw)
+{
     osgViewer::View* view = new osgViewer::View;
-    view->setCamera(camera);
-    view->setCameraManipulator(new osgGA::TrackballManipulator());
+    addView(view);
 
-    m_compViewer->addView(view);
-    m_compViewer->setThreadingModel(osgViewer::CompositeViewer::SingleThreaded);
+    osg::Camera* camera = view->getCamera();
+    camera->setGraphicsContext(gw);
+
+    const osg::GraphicsContext::Traits* traits = gw->getTraits();
+
+    camera->setClearColor(osg::Vec4(0.2, 0.2, 0.6, 1.0));
+    camera->setViewport(new osg::Viewport(0, 0, traits->width, traits->height));
+    camera->setProjectionMatrixAsPerspective(30.0f, static_cast<double>(traits->width) / static_cast<double>(traits->height), 1.0f, 10000.0f);
+
+    view->addEventHandler(new osgViewer::StatsHandler);
+    view->setCameraManipulator(new osgGA::MultiTouchTrackballManipulator);
+    gw->setTouchEventsEnabled(true);
+    return gw->getGLWidget();
 }
 
-OSGViewerWidget::~OSGViewerWidget()
+osgQt::GraphicsWindowQt* OSGViewerWidget::createGraphicsWindow(int x, int y, int w, int h, const std::string& name, bool windowDecoration)
 {
+    osg::DisplaySettings* ds = osg::DisplaySettings::instance().get();
+    osg::ref_ptr<osg::GraphicsContext::Traits> traits = new osg::GraphicsContext::Traits;
+    traits->windowName = name;
+    traits->windowDecoration = windowDecoration;
+    traits->x = x;
+    traits->y = y;
+    traits->width = w;
+    traits->height = h;
+    traits->doubleBuffer = true;
+    traits->alpha = ds->getMinimumNumAlphaBits();
+    traits->stencil = ds->getMinimumNumStencilBits();
+    traits->sampleBuffers = ds->getMultiSamples();
+    traits->samples = ds->getNumMultiSamples();
 
-}
-
-void OSGViewerWidget::resizeGL(int width, int height)
-{
-    m_graphWindow->getEventQueue()->windowResize(x(), y(), width, height);
-    m_graphWindow->resized(x(), y(), width, height);
-    
-    std::vector<osg::Camera*> cameras;
-    m_compViewer->getCameras(cameras);
-
-    cameras[0]->setViewport(0, 0, width / 2, height);
-}
-
-void OSGViewerWidget::paintEvent(QPaintEvent* paintEvent)
-{
-    QOpenGLWidget::paintEvent(paintEvent);
-}
-
-void OSGViewerWidget::paintGL()
-{
-    
+    return new osgQt::GraphicsWindowQt(traits.get());
 }

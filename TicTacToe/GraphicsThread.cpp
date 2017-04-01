@@ -3,20 +3,23 @@
 #include <osgViewer/CompositeViewer>
 #include <osgViewer/GraphicsWindow>
 
+#include <osgQt/GraphicsWindowQt>
 
 #include <osg/PositionAttitudeTransform>
 
 #include <QApplication>
+#include <QGraphicsProxyWidget>
 GraphicsThread::GraphicsThread(QObject *parent) : QThread(parent),
     m_done(false),
-    m_osgViewer(nullptr)
+    m_osgViewer(nullptr),
+    m_threadsWaiting(false)
 {
 
 }
 
 GraphicsThread::~GraphicsThread()
 {
-
+    m_osgViewer->deleteLater();
 }
 
 //not going to lock here.  How can you have a word tear on a bool? you can't!  
@@ -27,14 +30,28 @@ void GraphicsThread::setDone(bool done)
 
 void GraphicsThread::addTask(std::function<void()> task)
 {
-    QWriteLocker lock(&m_taskRWLock);
+    QWriteLocker lock(&m_RWLock);
     m_tasks.push_back(task);
 }
 
+void GraphicsThread::addTaskBlocking(std::function<void()> task)
+{
+    std::unique_lock<std::mutex> lock(m_conditionMutex);
+
+    {
+        QWriteLocker lock(&m_RWLock);
+        m_tasks.push_back(task);
+        m_threadsWaiting = true;
+    }
+
+    m_condition.wait(lock);
+}
+
+
 void GraphicsThread::init()
 {
+    QReadLocker lock(&m_RWLock);
     createBoard();
-    m_osgViewer->realize();
 }
 
 void GraphicsThread::run()
@@ -56,10 +73,10 @@ void GraphicsThread::run()
         //we'll avoid the costly write lock most of the time
         //by checking if we even have functions to process at all first
         bool hasTasks = false;
-
+        bool otherThreadsWaiting = false;
         //scope the lock
         {
-            QReadLocker lock(&m_taskRWLock);
+            QReadLocker lock(&m_RWLock);
             hasTasks = !m_tasks.empty();
         }
 
@@ -69,19 +86,28 @@ void GraphicsThread::run()
             std::vector<std::function<void()>> localTasks;
             //scope the lock
             {
-                QWriteLocker lock(&m_taskRWLock);
+                QWriteLocker lock(&m_RWLock);
                 std::move(m_tasks.begin(), m_tasks.end(), std::back_inserter(localTasks));
                 m_tasks.clear();
+                otherThreadsWaiting = m_threadsWaiting;
+                m_threadsWaiting = false;
             }
 
             //execute tasks
             for (auto&& task : localTasks)
                 task();
 
+            if (otherThreadsWaiting)
+            {
+                std::unique_lock<std::mutex> lock(m_conditionMutex);
+                lock.unlock();
+                m_condition.notify_all();
+            }
+
         }
 
         //step viewer
-        if(m_osgViewer)
+        if (m_osgViewer)
             m_osgViewer->frame();
 
         //let Qt's event queue process

@@ -13,7 +13,7 @@ class TMainWindow : public QMainWindow
 
 public:
     TMainWindow(QWidget *parent = nullptr);
-    virtual ~TMainWindow() {};
+    virtual ~TMainWindow();
 
 protected slots:
     void handleQuit();

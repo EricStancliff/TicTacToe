@@ -1,30 +1,30 @@
 #pragma once
 #include <QOpenGLWidget>
+#include <osgViewer/CompositeViewer>
 
-
-namespace osgViewer
+namespace osgQt
 {
-    class GraphicsWindowEmbedded;
-    class CompositeViewer;
+    class GLWidget;
+    class GraphicsWindowQt;
 }
 
-//let's try to hide as much of the camera/view management in this class
-//as far as the world is concerned, this is just another QWidget... maybe...
-class OSGViewerWidget : public QOpenGLWidget
+//class based on OSG example for Qt with OSG Viewer
+//osgViewerQt.cpp OpenSceneGraph version 3.4.0
+
+class OSGViewerWidget : public QWidget, public osgViewer::CompositeViewer
 {
     Q_OBJECT
 public:
-    OSGViewerWidget(QWidget* parent = nullptr, Qt::WindowFlags f = Qt::WindowFlags());
-    virtual ~OSGViewerWidget();
+    OSGViewerWidget(QWidget* parent = nullptr, Qt::WindowFlags f = Qt::WindowFlags(), osgViewer::ViewerBase::ThreadingModel threadingModel = osgViewer::CompositeViewer::SingleThreaded);
+    virtual ~OSGViewerWidget() {};
 
-    osgViewer::CompositeViewer* getOSGViewer() const { return m_compViewer; };
+    osgQt::GLWidget* addViewWidget(osgQt::GraphicsWindowQt* gw);
+
+    osgQt::GraphicsWindowQt* createGraphicsWindow(int x, int y, int w, int h, const std::string& name = "", bool windowDecoration = false);
+
+    std::vector<osgQt::GLWidget*> getGLWidgets() const { return m_qglWidgets; }
 
 protected:
+    std::vector<osgQt::GLWidget*> m_qglWidgets;
 
-    virtual void paintEvent(QPaintEvent* paintEvent);
-    virtual void paintGL();
-    virtual void resizeGL(int width, int height);
-
-    osgViewer::GraphicsWindowEmbedded* m_graphWindow;
-    osgViewer::CompositeViewer*        m_compViewer;
 };
