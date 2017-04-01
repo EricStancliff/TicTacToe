@@ -20,7 +20,7 @@ public:
 
     osgQt::GLWidget* addViewWidget(osgQt::GraphicsWindowQt* gw);
 
-    osgQt::GraphicsWindowQt* createGraphicsWindow(int x, int y, int w, int h, const std::string& name = "", bool windowDecoration = false);
+    osgQt::GraphicsWindowQt* createGraphicsWindow();
 
     std::vector<osgQt::GLWidget*> getGLWidgets() const { return m_qglWidgets; }
 
