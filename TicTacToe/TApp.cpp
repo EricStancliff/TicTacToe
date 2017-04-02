@@ -9,6 +9,7 @@ TApp::TApp(int argc, char *argv[]) : QApplication(argc, argv),
     qRegisterMetaType<MoveStruct>("MoveStruct");
 
     m_gameManager = new GameMoveManager(this);
+    m_gameManager->start();
 
     m_graphicsThread = new GraphicsThread();
     m_graphicsThread->start();
@@ -20,4 +21,8 @@ TApp::~TApp()
     m_graphicsThread->setDone(true);
     m_graphicsThread->wait();
     m_graphicsThread->deleteLater();
+
+    m_gameManager->quit();
+    m_gameManager->wait();
+    m_gameManager->deleteLater();
 }

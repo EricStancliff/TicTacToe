@@ -6,6 +6,8 @@
 
 #include <QReadWriteLock>
 #include <QObject>
+#include <QThread>
+#include <QTimer>
 
 //this is the data struct we'll use to define a "move"
 //x and y position, *should* be between 0 and 2
@@ -72,8 +74,7 @@ struct MoveStruct {
 //only happen on click, so QMutex will be fine, for convienience
 //if we need to be faster, I'll include TBB.
 
-//no need to make this a qobject for now
-class GameMoveManager : public QObject
+class GameMoveManager : public QThread
 {
     Q_OBJECT
 public:
@@ -85,6 +86,8 @@ public:
     //clears out all of the moves
     void clearGame();
 
+    bool isCurrentlyUsersTurn() const { return m_currentlyUsersTurn; }
+
     //decides the next AI move, stores and retrns it
     MoveStruct makeNextAIMove();
 
@@ -92,14 +95,22 @@ public:
     bool storeUserMadeMove(const MoveStruct& move, std::string& errorMsg);
 
 signals:
-    void moveStored(MoveStruct);
+    void moveStored(const MoveStruct&);
     void boardCleared();
 
+protected slots:
+    void timeout();
+
 protected:
+
+    QTimer m_timer;
+
     //we'll sort this, mostly for convienience, but also so we can
     //surf down in order and make the next "dumb" move until 
     //I make this thing smart enough to win
     std::vector<MoveStruct> m_currentMoves;
+
+    bool m_currentlyUsersTurn;
 
     //if we do more reads than writes, this is a win
     mutable QReadWriteLock m_rwLock;

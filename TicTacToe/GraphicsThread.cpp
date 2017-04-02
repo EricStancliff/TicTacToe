@@ -1,5 +1,6 @@
 #include "GraphicsThread.h"
 #include "ClickEventHandler.h"
+#include "TApp.h"
 
 #include <osgViewer/CompositeViewer>
 #include <osgViewer/GraphicsWindow>
@@ -19,7 +20,8 @@ GraphicsThread::GraphicsThread(QObject *parent) : QThread(parent),
     m_osgViewer(nullptr),
     m_threadsWaiting(false)
 {
-
+    connect(tApp->getGameManager(), &GameMoveManager::moveStored, this, &GraphicsThread::handleMoveStored);
+    connect(tApp->getGameManager(), &GameMoveManager::boardCleared, this, &GraphicsThread::handleBoardCleared);
 }
 
 GraphicsThread::~GraphicsThread()
@@ -82,6 +84,16 @@ void GraphicsThread::init()
     m_osgViewer->getViews(views);
     for (auto&& view : views)
         view->addEventHandler(new ClickEventHandler);
+}
+
+void GraphicsThread::handleMoveStored(const MoveStruct& move)
+{
+    m_currentMoves.push_back(move);
+}
+
+void GraphicsThread::handleBoardCleared()
+{
+    m_currentMoves.clear();
 }
 
 void GraphicsThread::run()

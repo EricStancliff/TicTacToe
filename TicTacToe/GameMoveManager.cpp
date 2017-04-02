@@ -1,13 +1,20 @@
 #include "GameMoveManager.h"
 
-GameMoveManager::GameMoveManager(QObject* parent) : QObject(parent)
+GameMoveManager::GameMoveManager(QObject* parent) : QThread(parent), m_currentlyUsersTurn(true)
 {
-    //boring
+    connect(&m_timer, &QTimer::timeout, this, &GameMoveManager::timeout);
+    m_timer.start(2000);
 }
 
 GameMoveManager::~GameMoveManager()
 {
 
+}
+
+void GameMoveManager::timeout()
+{
+    if (!m_currentlyUsersTurn)
+        makeNextAIMove();
 }
 
 std::vector<MoveStruct> GameMoveManager::getAllCurrentMoves() const
@@ -27,6 +34,11 @@ void GameMoveManager::clearGame()
 
 bool GameMoveManager::storeUserMadeMove(const MoveStruct& move, std::string& errorMsg)
 {
+    if (!m_currentlyUsersTurn)
+    {
+        errorMsg = "Not your turn!";
+        return false;
+    }
     //quick bail error check
     if (move.xPos > 2 || move.yPos > 2)
     {
@@ -42,6 +54,7 @@ bool GameMoveManager::storeUserMadeMove(const MoveStruct& move, std::string& err
     if (m_currentMoves.empty())
     {
         m_currentMoves.push_back(move);
+        m_currentlyUsersTurn = false;
         emit moveStored(move);
         return true;
     }
@@ -54,6 +67,7 @@ bool GameMoveManager::storeUserMadeMove(const MoveStruct& move, std::string& err
     }
 
     m_currentMoves.insert(movePosItr, move);
+    m_currentlyUsersTurn = false;
     emit moveStored(move);
     return true;
 }
@@ -69,6 +83,7 @@ MoveStruct GameMoveManager::makeNextAIMove()
     {
         MoveStruct nextMove;
         m_currentMoves.push_back(nextMove);
+        m_currentlyUsersTurn = true;
         emit moveStored(nextMove);
         return nextMove;
     }
@@ -77,6 +92,7 @@ MoveStruct GameMoveManager::makeNextAIMove()
     MoveStruct lastMove = m_currentMoves.back();
     ++lastMove.xPos;
     ++lastMove.yPos;
+    m_currentlyUsersTurn = true;
     emit moveStored(lastMove);
     return lastMove;
 }

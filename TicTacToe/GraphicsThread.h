@@ -1,5 +1,8 @@
 #pragma once
 
+#include "GameMoveManager.h"
+
+
 #include <functional>
 #include <condition_variable>
 #include <assert.h>
@@ -66,6 +69,10 @@ public:
     //add a task and block until it's completion
     void addTaskBlocking(std::function<void()> task);
 
+protected slots:
+    void handleMoveStored(const MoveStruct& move);
+    void handleBoardCleared();
+
 protected:
     virtual void run();
 
@@ -99,4 +106,6 @@ protected:
 
     bool m_done;
     bool m_threadsWaiting;
+
+    std::vector<MoveStruct> m_currentMoves;
 };
