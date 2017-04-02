@@ -47,7 +47,7 @@ bool GameMoveManager::storeUserMadeMove(const MoveStruct& move, std::string& err
     }
 
     auto movePosItr = std::lower_bound(m_currentMoves.begin(), m_currentMoves.end(), move);
-    if ((*movePosItr) == move)
+    if (movePosItr != m_currentMoves.end() && (*movePosItr) == move)
     {
         errorMsg = "Square already taken, pick again!";
         return false;

@@ -2,7 +2,7 @@
 #include "GameMoveManager.h"
 #include "TApp.h"
 
-#include <iostream>
+#include <QDebug>
 
 ClickEventHandler::ClickEventHandler()
 {
@@ -31,26 +31,26 @@ bool ClickEventHandler::handle(const osgGA::GUIEventAdapter& ea, osgGA::GUIActio
 
             if (ea.getX() < ea.getXmax() / 3)
                 x = 0;
-            else if (ea.getX() >= ((ea.getXmax() / 3) * 2) && ea.getX() < ea.getXmax())
+            else if (ea.getX() >= (ea.getXmax() / 3) && ea.getX() < ((ea.getXmax() / 3) * 2))
                 x = 1;
             else
                 x = 2;
 
             if (ea.getY() < ea.getYmax() / 3)
-                y = 0;
-            else if (ea.getY() >= ((ea.getYmax() / 3) * 2) && ea.getY() < ea.getYmax())
+                y = 2;
+            else if (ea.getY() >= (ea.getYmax() / 3) && ea.getY() < ((ea.getYmax() / 3) * 2))
                 y = 1;
             else
-                y = 2;
+                y = 0;
 
             MoveStruct move(x, y);
 
             std::string errMsg;
             
             if (tApp->getGameManager()->storeUserMadeMove(move, errMsg))
-                std::cout << "Successful Move a position " << x << ", " << "y";
+                 qWarning() << "Successful Move a position " << x << ", " << y;
             else
-                std::cout << errMsg;
+                qWarning() << QString::fromStdString(errMsg);
 
 
         }
