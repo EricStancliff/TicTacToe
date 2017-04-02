@@ -15,6 +15,11 @@ namespace osg
 {
     class Group;
     class PositionAttitudeTransform;
+    class Camera;
+}
+
+namespace osgText
+{
     class Text;
 }
 
@@ -74,6 +79,8 @@ protected:
 
     void updateGamePieces();
 
+    osg::Camera* getCamera() const;
+
     std::vector < std::function<void()>> m_tasks;
     std::condition_variable m_blockingTaskComplete;
     std::mutex m_blockingTaskMutex;
@@ -87,6 +94,8 @@ protected:
 
     std::vector<osg::ref_ptr<osg::Geode>> m_boardLines;
     osg::ref_ptr<osg::PositionAttitudeTransform> m_boardTransform;
+
+    osg::ref_ptr<osgText::Text> m_gameStats;
 
     bool m_done;
     bool m_threadsWaiting;

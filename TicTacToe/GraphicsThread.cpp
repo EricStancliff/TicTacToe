@@ -4,6 +4,8 @@
 #include <osgViewer/GraphicsWindow>
 
 #include <osgQt/GraphicsWindowQt>
+#include <osgQt/QFontImplementation>
+
 
 #include <osg/PositionAttitudeTransform>
 #include <osg/LineSegment>
@@ -49,11 +51,27 @@ void GraphicsThread::addTaskBlocking(std::function<void()> task)
     m_blockingTaskComplete.wait(lock);
 }
 
+osg::Camera* GraphicsThread::getCamera() const
+{
+    if (!m_osgViewer)
+        return nullptr;
+
+    std::vector<osg::Camera*> cameras;
+    m_osgViewer->getCameras(cameras);
+
+    assert(cameras.size());  //why  would we have no cameras?
+
+    if (cameras.size())
+    {
+        return cameras[0];
+    }
+}
+
 
 void GraphicsThread::init()
 {
-    QReadLocker lock(&m_RWLock);
     createBoard();
+    createGameStats();
 }
 
 void GraphicsThread::run()
@@ -128,21 +146,7 @@ void GraphicsThread::run()
 
 void GraphicsThread::createBoard()
 {
-    if (!m_osgViewer)
-        return;
-
-    std::vector<osg::Camera*> cameras;
-    m_osgViewer->getCameras(cameras);
-
-    assert(cameras.size());
-
-    osg::Camera* camera = nullptr;
-
-    if (cameras.size())
-    {
-        camera = cameras[0];
-    }
-
+    auto camera = getCamera();
     if (!camera)
         return;
 
@@ -160,11 +164,15 @@ void GraphicsThread::createBoard()
         osg::Geometry* segment = new osg::Geometry;
 
         osg::ref_ptr<osg::Vec4Array> color = new osg::Vec4Array;
-        color->push_back(osg::Vec4f(1.0f, 0.0f, 0.0f, 1.0f));
+        color->push_back(osg::Vec4f(1.0f, 0.0f, 0.0f, 0.8f));
 
         segment->setColorArray(color, osg::Array::BIND_OVERALL);
 
         segment->addPrimitiveSet(new osg::DrawArrays(GL_QUADS, 0, 4));
+
+        osg::StateSet* stateset = segment->getOrCreateStateSet();
+        stateset->setMode(GL_BLEND, osg::StateAttribute::ON);
+        stateset->setRenderingHint(osg::StateSet::TRANSPARENT_BIN);
 
         lineGeode->addDrawable(segment);
         m_boardLines.push_back(lineGeode);
@@ -176,21 +184,7 @@ void GraphicsThread::createBoard()
 
 void GraphicsThread::updateBoard()
 {
-    if (!m_osgViewer)
-        return;
-
-    std::vector<osg::Camera*> cameras;
-    m_osgViewer->getCameras(cameras);
-
-    assert(cameras.size());
-
-    osg::Camera* camera = nullptr;
-
-    if (cameras.size())
-    {
-        camera = cameras[0];
-    }
-
+    auto camera = getCamera();
     if (!camera)
         return;
 
@@ -228,38 +222,65 @@ void GraphicsThread::updateBoard()
         points->clear();
 
         //two horizontal, then two vertical
+        //forcing the board in the back a bit so the text is on top
         if (i < 2)
         {
             posMultiplier = i == 0 ? 1.0 : 2.0;
-            points->push_back(osg::Vec3d(20.0, (yMax / 3.0) * posMultiplier, 0.0));
-            points->push_back(osg::Vec3d((xMax - 20.0), (yMax / 3.0) * posMultiplier, 0.0));
-            points->push_back(osg::Vec3d((xMax - 20.0), ((yMax / 3.0)* posMultiplier) - 10.0 , 0.0));
-            points->push_back(osg::Vec3d(20.0, ((yMax / 3.0)* posMultiplier) - 10.0, 0.0));
+            points->push_back(osg::Vec3d(20.0, (yMax / 3.0) * posMultiplier, -0.1));
+            points->push_back(osg::Vec3d((xMax - 20.0), (yMax / 3.0) * posMultiplier, -0.1));
+            points->push_back(osg::Vec3d((xMax - 20.0), ((yMax / 3.0)* posMultiplier) - 10.0 , -0.1));
+            points->push_back(osg::Vec3d(20.0, ((yMax / 3.0)* posMultiplier) - 10.0, -0.1));
         }
         else
         {
             posMultiplier = i == 2 ? 1.0 : 2.0;
-            points->push_back(osg::Vec3d((xMax / 3.0) * posMultiplier, yMax - 20, 0.0));
-            points->push_back(osg::Vec3d(((xMax / 3.0)  * posMultiplier) + 10.0, yMax - 20, 0.0));
-            points->push_back(osg::Vec3d(((xMax / 3.0)  * posMultiplier) + 10.0, 10.0, 0.0));
-            points->push_back(osg::Vec3d((xMax / 3.0) * posMultiplier, 10.0, 0.0));
+            points->push_back(osg::Vec3d((xMax / 3.0) * posMultiplier, yMax - 20, -0.1));
+            points->push_back(osg::Vec3d(((xMax / 3.0)  * posMultiplier) + 10.0, yMax - 20, -0.1));
+            points->push_back(osg::Vec3d(((xMax / 3.0)  * posMultiplier) + 10.0, 20.0, -0.1));
+            points->push_back(osg::Vec3d((xMax / 3.0) * posMultiplier, 20.0, -0.1));
         }
-
 
         segment->setVertexArray(points);
     }
-
 
     m_boardTransform->setPosition(camera->getInverseViewMatrix().getTrans());
 }
 
 void GraphicsThread::createGameStats()
 {
+    assert(m_boardTransform);
+    if (!m_boardTransform)
+        return;
 
+    osg::Geode* textGeode = new osg::Geode;
+
+    m_gameStats = new osgText::Text;
+
+    m_gameStats->setFont(new osgText::Font(new osgQt::QFontImplementation(QFont("Arial"))));
+    m_gameStats->setColor(osg::Vec4(1.0f, 1.0f, 1.0f, 0.6f));
+    m_gameStats->setCharacterSize(15.0f);
+
+    textGeode->addDrawable(m_gameStats);
+
+    m_boardTransform->addChild(textGeode);
 }
 
 void GraphicsThread::updateGameStats()
 {
+    if (!m_gameStats)
+        return;
+
+    m_gameStats->setText("Score: Player - 0 / Computer - 0");
+
+    auto camera = getCamera();
+    if (!camera)
+        return;
+
+
+    auto xMax = camera->getViewport()->width();
+    auto yMax = camera->getViewport()->height();
+
+    m_gameStats->setPosition(osg::Vec3d(20.0, yMax - 25.0, 0.0));
 
 }
 
