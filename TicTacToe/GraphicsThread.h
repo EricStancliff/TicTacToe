@@ -15,6 +15,7 @@ namespace osg
 {
     class Group;
     class PositionAttitudeTransform;
+    class Text;
 }
 
 namespace
@@ -35,6 +36,9 @@ namespace
     }
 }
 
+//this class is a QThread because we need to tell the QOpenGLContext that we own it
+//so we can render in our own thread.  This is only really important if you're doing a lot of work in the UI
+//thread and you don't want it to impact your FPS, which probably won't impact us in this case.
 class GraphicsThread : public QThread
 {
     Q_OBJECT
@@ -64,8 +68,17 @@ protected:
 
     void updateBoard();
 
+    void createGameStats();
+
+    void updateGameStats();
+
+    void updateGamePieces();
+
     std::vector < std::function<void()>> m_tasks;
-    
+    std::condition_variable m_blockingTaskComplete;
+    std::mutex m_blockingTaskMutex;
+
+
     OSGViewerWidget* m_osgViewer;
 
     QReadWriteLock m_RWLock;
@@ -74,9 +87,6 @@ protected:
 
     std::vector<osg::ref_ptr<osg::Geode>> m_boardLines;
     osg::ref_ptr<osg::PositionAttitudeTransform> m_boardTransform;
-
-    std::condition_variable m_condition;
-    std::mutex m_conditionMutex;
 
     bool m_done;
     bool m_threadsWaiting;

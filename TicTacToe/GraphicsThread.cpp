@@ -38,7 +38,7 @@ void GraphicsThread::addTask(std::function<void()> task)
 
 void GraphicsThread::addTaskBlocking(std::function<void()> task)
 {
-    std::unique_lock<std::mutex> lock(m_conditionMutex);
+    std::unique_lock<std::mutex> lock(m_blockingTaskMutex);
 
     {
         QWriteLocker lock(&m_RWLock);
@@ -46,7 +46,7 @@ void GraphicsThread::addTaskBlocking(std::function<void()> task)
         m_threadsWaiting = true;
     }
 
-    m_condition.wait(lock);
+    m_blockingTaskComplete.wait(lock);
 }
 
 
@@ -78,7 +78,6 @@ void GraphicsThread::run()
         //we'll avoid the costly write lock most of the time
         //by checking if we even have functions to process at all first
         bool hasTasks = false;
-        bool otherThreadsWaiting = false;
         //scope the lock
         {
             QReadLocker lock(&m_RWLock);
@@ -88,6 +87,7 @@ void GraphicsThread::run()
         if (hasTasks)
         {
 
+            bool otherThreadsWaiting = false;
             std::vector<std::function<void()>> localTasks;
             //scope the lock
             {
@@ -104,14 +104,16 @@ void GraphicsThread::run()
 
             if (otherThreadsWaiting)
             {
-                std::unique_lock<std::mutex> lock(m_conditionMutex);
+                std::unique_lock<std::mutex> lock(m_blockingTaskMutex);
                 lock.unlock();
-                m_condition.notify_all();
+                m_blockingTaskComplete.notify_all();
             }
 
         }
 
         updateBoard();
+        updateGameStats();
+        updateGamePieces();
 
         //step viewer
         if (m_osgViewer)
@@ -151,24 +153,24 @@ void GraphicsThread::createBoard()
     m_boardTransform = new osg::PositionAttitudeTransform;
     m_rootGroup->addChild(m_boardTransform);
 
-    osg::Geode* lineGeode = new osg::Geode;
-    osg::Geometry* segment = new osg::Geometry;
-    
-    auto xMax = camera->getViewport()->width();
-    auto yMax = camera->getViewport()->height();
+    //make four lines for the board
+    for (int i = 0; i < 4; ++i)
+    {
+        osg::Geode* lineGeode = new osg::Geode;
+        osg::Geometry* segment = new osg::Geometry;
 
+        osg::ref_ptr<osg::Vec4Array> color = new osg::Vec4Array;
+        color->push_back(osg::Vec4f(1.0f, 0.0f, 0.0f, 1.0f));
 
-    osg::ref_ptr<osg::Vec4Array> color = new osg::Vec4Array;
-    color->push_back(osg::Vec4f(1.0f, 0.0f, 0.0f, 1.0f));
+        segment->setColorArray(color, osg::Array::BIND_OVERALL);
 
-    segment->setColorArray(color, osg::Array::BIND_OVERALL);
+        segment->addPrimitiveSet(new osg::DrawArrays(GL_QUADS, 0, 4));
 
-    segment->addPrimitiveSet(new osg::DrawArrays(GL_QUADS, 0, 4));
+        lineGeode->addDrawable(segment);
+        m_boardLines.push_back(lineGeode);
 
-    lineGeode->addDrawable(segment);
-    m_boardLines.push_back(lineGeode);
-
-    m_boardTransform->addChild(lineGeode);
+        m_boardTransform->addChild(lineGeode);
+    }
 
 }
 
@@ -194,23 +196,74 @@ void GraphicsThread::updateBoard()
 
     auto xMax = camera->getViewport()->width();
     auto yMax = camera->getViewport()->height();
-    // set the projection matrix
+
+    // set the projection matrix of the camera, this probably doesn't belong here
     camera->setProjectionMatrixAsOrtho2D(0, xMax, 0, yMax);
 
+
+    double posMultiplier;
     //update position of board
     for (int i = 0; i < m_boardLines.size(); ++i)
     {
+        //here we should be able to assume all geodes are valid, each one has one drawable, and each
+        //drawable is a geometry.  We'll check just to be extra safe though.
         osg::Geode* lineGeode = m_boardLines.at(i);
-        osg::Geometry* segment = dynamic_cast<osg::Geometry*>(lineGeode->getDrawable(0));
+        assert(lineGeode);
+        if (!lineGeode)
+            continue;
 
-        //clockwise
-        osg::ref_ptr<osg::Vec3Array> points = new osg::Vec3Array;
-        points->push_back(osg::Vec3d(20.0, (yMax / 3.0), 0.0));
-        points->push_back(osg::Vec3d((xMax - 20.0), (yMax / 3.0), 0.0));
-        points->push_back(osg::Vec3d((xMax - 20.0), ((yMax / 3.0) - 10.0), 0.0));
-        points->push_back(osg::Vec3d(20.0, ((yMax / 3.0) - 10.0), 0.0));
+        assert(lineGeode->getNumDrawables() == 1);
+
+        osg::Geometry* segment = dynamic_cast<osg::Geometry*>(lineGeode->getDrawable(0));
+        assert(segment);
+        if (!segment)
+            continue;
+
+        //clockwise, starting at top left
+        osg::Vec3Array* points = dynamic_cast<osg::Vec3Array*>(segment->getVertexArray());
+        if (!points)
+        {
+            points = new osg::Vec3Array;
+        }
+        points->clear();
+
+        //two horizontal, then two vertical
+        if (i < 2)
+        {
+            posMultiplier = i == 0 ? 1.0 : 2.0;
+            points->push_back(osg::Vec3d(20.0, (yMax / 3.0) * posMultiplier, 0.0));
+            points->push_back(osg::Vec3d((xMax - 20.0), (yMax / 3.0) * posMultiplier, 0.0));
+            points->push_back(osg::Vec3d((xMax - 20.0), ((yMax / 3.0)* posMultiplier) - 10.0 , 0.0));
+            points->push_back(osg::Vec3d(20.0, ((yMax / 3.0)* posMultiplier) - 10.0, 0.0));
+        }
+        else
+        {
+            posMultiplier = i == 2 ? 1.0 : 2.0;
+            points->push_back(osg::Vec3d((xMax / 3.0) * posMultiplier, yMax - 20, 0.0));
+            points->push_back(osg::Vec3d(((xMax / 3.0)  * posMultiplier) + 10.0, yMax - 20, 0.0));
+            points->push_back(osg::Vec3d(((xMax / 3.0)  * posMultiplier) + 10.0, 10.0, 0.0));
+            points->push_back(osg::Vec3d((xMax / 3.0) * posMultiplier, 10.0, 0.0));
+        }
+
 
         segment->setVertexArray(points);
     }
+
+
     m_boardTransform->setPosition(camera->getInverseViewMatrix().getTrans());
+}
+
+void GraphicsThread::createGameStats()
+{
+
+}
+
+void GraphicsThread::updateGameStats()
+{
+
+}
+
+void GraphicsThread::updateGamePieces()
+{
+
 }
