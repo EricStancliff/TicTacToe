@@ -91,6 +91,9 @@
     <ClCompile Include="GraphicsThread.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="ClickEventHandler.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <CustomBuild Include="TicTacToe.qrc">
@@ -118,6 +121,9 @@
   <ItemGroup>
     <ClInclude Include="GeneratedFiles\ui_TMainWindow.h">
       <Filter>Generated Files</Filter>
+    </ClInclude>
+    <ClInclude Include="ClickEventHandler.h">
+      <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

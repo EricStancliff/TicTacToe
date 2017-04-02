@@ -12,6 +12,7 @@
 struct MoveStruct {
 
     MoveStruct() : xPos(0), yPos(0) {};
+    MoveStruct(uint8_t x, uint8_t y) : xPos(x), yPos(y) {};
     MoveStruct(const MoveStruct& other) : xPos(other.xPos), yPos(other.yPos) {};
     MoveStruct(MoveStruct&& other) :  xPos(std::move(other.xPos)), yPos(std::move(other.yPos)) {};
     ~MoveStruct() {};

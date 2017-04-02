@@ -1,4 +1,5 @@
 #include "GraphicsThread.h"
+#include "ClickEventHandler.h"
 
 #include <osgViewer/CompositeViewer>
 #include <osgViewer/GraphicsWindow>
@@ -70,8 +71,17 @@ osg::Camera* GraphicsThread::getCamera() const
 
 void GraphicsThread::init()
 {
+    assert(m_osgViewer);
+    if (!m_osgViewer)
+        return;
+
     createBoard();
     createGameStats();
+
+    std::vector<osgViewer::View*> views;
+    m_osgViewer->getViews(views);
+    for (auto&& view : views)
+        view->addEventHandler(new ClickEventHandler);
 }
 
 void GraphicsThread::run()
