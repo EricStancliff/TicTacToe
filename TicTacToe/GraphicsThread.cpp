@@ -1,6 +1,7 @@
 #include "GraphicsThread.h"
 #include "ClickEventHandler.h"
 #include "TApp.h"
+#include <OSGViewerWidget.h>
 
 #include <osgViewer/CompositeViewer>
 #include <osgViewer/GraphicsWindow>
@@ -11,8 +12,15 @@
 
 #include <osg/PositionAttitudeTransform>
 #include <osg/LineSegment>
+#include <osg/Texture2D>
+
 #include <osgText/Text>
+
+#include <osgDB/ReadFile>
+
 #include <QApplication>
+#include <QDir>
+#include <QDebug>
 
 
 GraphicsThread::GraphicsThread(QObject *parent) : QThread(parent),
@@ -84,6 +92,11 @@ void GraphicsThread::init()
     m_osgViewer->getViews(views);
     for (auto&& view : views)
         view->addEventHandler(new ClickEventHandler);
+
+    m_xFile.setFileName(QDir::cleanPath(QApplication::applicationDirPath() + QDir::separator() + ".." + QDir::separator() + ".." + QDir::separator() + 
+        "TicTacToe" + QDir::separator() + "Resources" + QDir::separator() + "X_Icon.png"));
+    if (!m_xFile.exists())
+        qCritical() << "No Icons Found!!";
 }
 
 void GraphicsThread::handleMoveStored(const MoveStruct& move)
@@ -98,8 +111,6 @@ void GraphicsThread::handleBoardCleared()
 
 void GraphicsThread::run()
 {
-    this->moveToThread(this);
-
     //test the rescale function
 #ifdef _DEBUG
     testRescaleRange();
@@ -308,5 +319,79 @@ void GraphicsThread::updateGameStats()
 
 void GraphicsThread::updateGamePieces()
 {
+    if (!m_boardTransform.valid())
+        return;
 
+    auto camera = getCamera();
+    if (!camera)
+        return;
+
+    auto xMax = camera->getViewport()->width();
+    auto yMax = camera->getViewport()->height();
+
+
+    int i = 0;
+    for (auto&& move : m_currentMoves)
+    {
+        if (i >= m_displayedMoves.size())
+        {
+            osg::Geometry* geom = new osg::Geometry;
+
+            osg::Vec2Array* texcoords = new osg::Vec2Array;
+            texcoords->push_back(osg::Vec2f(0.0f, 1.0f));
+            texcoords->push_back(osg::Vec2f(0.0f, 0.0f));
+            texcoords->push_back(osg::Vec2f(1.0f, 0.0f));
+            texcoords->push_back(osg::Vec2f(1.0f, 1.0f));
+            geom->setTexCoordArray(0, texcoords);
+
+            osg::Vec4Array* colors = new osg::Vec4Array;
+            colors->push_back(osg::Vec4f(1.0f, 1.0f, 1.0f, 1.0f));
+            geom->setColorArray(colors, osg::Array::BIND_OVERALL);
+
+            geom->addPrimitiveSet(new osg::DrawArrays(GL_QUADS, 0, 4));
+
+            osg::Geode* geode = new osg::Geode;
+            geode->addDrawable(geom);
+            m_boardTransform->addChild(geode);
+
+            osg::Texture2D* texture = new osg::Texture2D;
+            texture->setDataVariance(osg::Object::DYNAMIC);
+            texture->setImage(osgDB::readImageFile(m_xFile.fileName().toStdString()));
+
+            osg::StateSet* stateset = geom->getOrCreateStateSet();
+            stateset->setTextureAttributeAndModes(0, texture, osg::StateAttribute::ON);
+            stateset->setMode(GL_BLEND, osg::StateAttribute::ON);
+            stateset->setRenderingHint(osg::StateSet::TRANSPARENT_BIN);
+
+            m_displayedMoves.push_back(std::make_pair(texture, geom));
+
+        }
+
+        if (m_displayedMoves.size() > i)
+        {
+            auto texture = m_displayedMoves[i].first;
+            auto geometry = m_displayedMoves[i].second;
+
+            osg::Vec3Array* vertices = dynamic_cast<osg::Vec3Array*>(geometry->getVertexArray());
+            if (!vertices)
+                vertices = new osg::Vec3Array;
+
+            vertices->clear();
+
+            //calc min/max positions of texture
+            double texXMin = move.xPos == 0 ? 10.0 : move.xPos == 1 ? (xMax / 3) + 10.0 : ((xMax / 3) * 2) + 10.0;
+            double texXMax = move.xPos == 0 ? (xMax / 3) - 10.0 : move.xPos == 1 ? ((xMax / 3) * 2) - 10.0 : xMax - 10.0;
+            double texYMin = move.yPos == 0 ? ((yMax / 3) * 2) + 10.0 : move.yPos == 1 ? (yMax / 3) + 10.0 : 10.0;
+            double texYMax = move.yPos == 0 ? yMax - 10.0 : move.yPos == 1 ? ((yMax / 3)*2) - 10.0 : (yMax / 3) - 10.0;
+
+            vertices->push_back(osg::Vec3d(texXMin, texYMax, 0));
+            vertices->push_back(osg::Vec3d(texXMax, texYMax, 0));
+            vertices->push_back(osg::Vec3d(texXMax, texYMin, 0));
+            vertices->push_back(osg::Vec3d(texXMin, texYMin, 0));
+
+            geometry->setVertexArray(vertices);
+
+        }
+        ++i;
+    }
 }

@@ -13,7 +13,7 @@ TApp::TApp(int argc, char *argv[]) : QApplication(argc, argv),
 
     m_graphicsThread = new GraphicsThread();
     m_graphicsThread->start();
-
+    m_graphicsThread->moveToThread(m_graphicsThread);
 }
 
 TApp::~TApp()

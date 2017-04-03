@@ -11,14 +11,18 @@
 
 #include <QThread>
 #include <QReadWriteLock>
+#include <QFile>
 
-#include <OSGViewerWidget.h>
+class OSGViewerWidget;
 
 namespace osg
 {
     class Group;
     class PositionAttitudeTransform;
     class Camera;
+    class Texture2D;
+    class Geometry;
+    class Geode;
 }
 
 namespace osgText
@@ -108,4 +112,8 @@ protected:
     bool m_threadsWaiting;
 
     std::vector<MoveStruct> m_currentMoves;
+    std::vector<std::pair<osg::ref_ptr<osg::Texture2D>, osg::ref_ptr<osg::Geometry>>> m_displayedMoves;
+
+    QFile m_xFile;
+    QFile m_oFile;
 };
