@@ -1,5 +1,7 @@
 #include "GameMoveManager.h"
 
+#include <QDebug>
+
 GameMoveManager::GameMoveManager(QObject* parent) : QThread(parent), m_currentlyUsersTurn(true)
 {
     connect(&m_timer, &QTimer::timeout, this, &GameMoveManager::timeout);
@@ -88,12 +90,38 @@ MoveStruct GameMoveManager::makeNextAIMove()
         return nextMove;
     }
 
-    //my copy
-    MoveStruct lastMove = m_currentMoves.back();
-    ++lastMove.xPos;
-    ++lastMove.yPos;
+    MoveStruct nextMove;
+    bool moveFound = false;
+    for (int x = 0; x <= 2; ++x)
+    {
+        for (int y = 0; y <= 2; ++y)
+        {
+            if (!moveFound)
+            {
+                nextMove.xPos = x;
+                nextMove.yPos = y;
+                auto movePosItr = std::lower_bound(m_currentMoves.begin(), m_currentMoves.end(), nextMove);
+                if (movePosItr == m_currentMoves.end() || ((*movePosItr).xPos != nextMove.xPos && (*movePosItr).yPos != nextMove.yPos))
+                {
+                    moveFound = true;
+                }
+            }
+        }
+    }
+
+    if (!moveFound)
+    {
+        qWarning() << "Game Over!";
+        m_currentMoves.clear();
+        emit boardCleared();
+        return MoveStruct();
+    }
+
+    auto movePosItr = std::lower_bound(m_currentMoves.begin(), m_currentMoves.end(), nextMove);
+    m_currentMoves.insert(movePosItr, nextMove);
+    nextMove.userMadeMove = false;
     m_currentlyUsersTurn = true;
-    emit moveStored(lastMove);
-    return lastMove;
+    emit moveStored(nextMove);
+    return nextMove;
 }
 

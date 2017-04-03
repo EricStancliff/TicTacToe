@@ -112,7 +112,15 @@ protected:
     bool m_threadsWaiting;
 
     std::vector<MoveStruct> m_currentMoves;
-    std::vector<std::pair<osg::ref_ptr<osg::Texture2D>, osg::ref_ptr<osg::Geometry>>> m_displayedMoves;
+
+    struct DisplayedMove
+    {
+        osg::ref_ptr<osg::Texture2D> texture;
+        osg::ref_ptr<osg::Geometry> geometry;
+        osg::ref_ptr<osg::Geode> geode;
+    };
+
+    std::vector<DisplayedMove> m_displayedMoves;
 
     QFile m_xFile;
     QFile m_oFile;

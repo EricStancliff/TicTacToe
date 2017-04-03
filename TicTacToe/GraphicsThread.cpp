@@ -96,7 +96,12 @@ void GraphicsThread::init()
     m_xFile.setFileName(QDir::cleanPath(QApplication::applicationDirPath() + QDir::separator() + ".." + QDir::separator() + ".." + QDir::separator() + 
         "TicTacToe" + QDir::separator() + "Resources" + QDir::separator() + "X_Icon.png"));
     if (!m_xFile.exists())
-        qCritical() << "No Icons Found!!";
+        qCritical() << "No X Icons Found!!";
+
+    m_oFile.setFileName(QDir::cleanPath(QApplication::applicationDirPath() + QDir::separator() + ".." + QDir::separator() + ".." + QDir::separator() +
+        "TicTacToe" + QDir::separator() + "Resources" + QDir::separator() + "O_Icon.png"));
+    if (!m_oFile.exists())
+        qCritical() << "No O Icons Found!!";
 }
 
 void GraphicsThread::handleMoveStored(const MoveStruct& move)
@@ -330,10 +335,10 @@ void GraphicsThread::updateGamePieces()
     auto yMax = camera->getViewport()->height();
 
 
-    int i = 0;
+    auto displayedMove = m_displayedMoves.begin();
     for (auto&& move : m_currentMoves)
     {
-        if (i >= m_displayedMoves.size())
+        if (displayedMove == m_displayedMoves.end())
         {
             osg::Geometry* geom = new osg::Geometry;
 
@@ -354,23 +359,30 @@ void GraphicsThread::updateGamePieces()
             geode->addDrawable(geom);
             m_boardTransform->addChild(geode);
 
+            std::string moveFile = move.userMadeMove ? m_oFile.fileName().toStdString() : m_xFile.fileName().toStdString();
+
             osg::Texture2D* texture = new osg::Texture2D;
             texture->setDataVariance(osg::Object::DYNAMIC);
-            texture->setImage(osgDB::readImageFile(m_xFile.fileName().toStdString()));
+            texture->setImage(osgDB::readImageFile(moveFile));
 
             osg::StateSet* stateset = geom->getOrCreateStateSet();
             stateset->setTextureAttributeAndModes(0, texture, osg::StateAttribute::ON);
             stateset->setMode(GL_BLEND, osg::StateAttribute::ON);
             stateset->setRenderingHint(osg::StateSet::TRANSPARENT_BIN);
 
-            m_displayedMoves.push_back(std::make_pair(texture, geom));
+            DisplayedMove dm;
+            dm.geode = geode;
+            dm.geometry = geom;
+            dm.texture = texture;
+
+            displayedMove = m_displayedMoves.insert(displayedMove, dm);
 
         }
 
-        if (m_displayedMoves.size() > i)
+        else if (displayedMove != m_displayedMoves.end())
         {
-            auto texture = m_displayedMoves[i].first;
-            auto geometry = m_displayedMoves[i].second;
+            auto texture = (*displayedMove).texture;
+            auto geometry = (*displayedMove).geometry;
 
             osg::Vec3Array* vertices = dynamic_cast<osg::Vec3Array*>(geometry->getVertexArray());
             if (!vertices)
@@ -391,7 +403,18 @@ void GraphicsThread::updateGamePieces()
 
             geometry->setVertexArray(vertices);
 
+            std::string moveFile = move.userMadeMove ? m_oFile.fileName().toStdString() : m_xFile.fileName().toStdString();
+            if (texture->getImage() && moveFile != texture->getImage()->getFileName())
+            {
+                qWarning() << "Changing image file!!";
+                texture->setImage(osgDB::readImageFile(moveFile));
+            }
         }
-        ++i;
+        ++displayedMove;
+    }
+    while (displayedMove != m_displayedMoves.end())
+    {
+        m_boardTransform->removeChild((*displayedMove).geode);
+        displayedMove = m_displayedMoves.erase(displayedMove);
     }
 }

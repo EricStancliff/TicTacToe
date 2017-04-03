@@ -43,7 +43,7 @@ bool ClickEventHandler::handle(const osgGA::GUIEventAdapter& ea, osgGA::GUIActio
             else
                 y = 0;
 
-            MoveStruct move(x, y);
+            MoveStruct move(x, y, true);
 
             std::string errMsg;
             

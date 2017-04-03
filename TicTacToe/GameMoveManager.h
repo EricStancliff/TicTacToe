@@ -13,14 +13,15 @@
 //x and y position, *should* be between 0 and 2
 struct MoveStruct {
 
-    MoveStruct() : xPos(0), yPos(0) {};
-    MoveStruct(uint8_t x, uint8_t y) : xPos(x), yPos(y) {};
-    MoveStruct(const MoveStruct& other) : xPos(other.xPos), yPos(other.yPos) {};
-    MoveStruct(MoveStruct&& other) :  xPos(std::move(other.xPos)), yPos(std::move(other.yPos)) {};
+    MoveStruct() : xPos(0), yPos(0), userMadeMove(false) {};
+    MoveStruct(uint8_t x, uint8_t y, bool userMade) : xPos(x), yPos(y), userMadeMove(userMade){};
+    MoveStruct(const MoveStruct& other) : xPos(other.xPos), yPos(other.yPos), userMadeMove(other.userMadeMove){};
+    MoveStruct(MoveStruct&& other) :  xPos(std::move(other.xPos)), yPos(std::move(other.yPos)), userMadeMove(std::move(other.userMadeMove)) {};
     ~MoveStruct() {};
 
     uint8_t xPos;
     uint8_t yPos;
+    bool userMadeMove;
 
     //for our purposes, moves go sequentially from 0,0 to 2,2
     //left to right, top to bottom, 0,0 being top left
@@ -47,7 +48,11 @@ struct MoveStruct {
     }
     inline bool operator==(const MoveStruct& rhs) const
     {
-        return (this->xPos == rhs.xPos && this->yPos == rhs.yPos);
+        return (this->xPos == rhs.xPos && this->yPos == rhs.yPos && this->userMadeMove == rhs.userMadeMove);
+    }
+    inline bool operator!=(const MoveStruct& rhs) const
+    {
+        return !(*this == rhs);
     }
 
     //copy and move
@@ -55,6 +60,7 @@ struct MoveStruct {
     {
         this->xPos = other.xPos;
         this->yPos = other.yPos;
+        this->userMadeMove = other.userMadeMove;
         return *this;
     }
 
@@ -62,6 +68,7 @@ struct MoveStruct {
     {
         this->xPos = std::move(other.xPos);
         this->yPos = std::move(other.yPos);
+        this->userMadeMove = std::move(other.userMadeMove);
         return *this;
     }
 };
