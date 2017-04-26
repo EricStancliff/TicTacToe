@@ -26,10 +26,14 @@
 GraphicsThread::GraphicsThread(QObject *parent) : QThread(parent),
     m_done(false),
     m_osgViewer(nullptr),
-    m_threadsWaiting(false)
+    m_threadsWaiting(false),
+    m_playerWins(0),
+    m_aiWins(0),
+    m_catWins(0)
 {
     connect(tApp->getGameManager(), &GameMoveManager::moveStored, this, &GraphicsThread::handleMoveStored);
     connect(tApp->getGameManager(), &GameMoveManager::boardCleared, this, &GraphicsThread::handleBoardCleared);
+    connect(tApp->getGameManager(), &GameMoveManager::scoreUpdated, this, &GraphicsThread::handleScoreUpdated);
 }
 
 GraphicsThread::~GraphicsThread()
@@ -76,6 +80,7 @@ osg::Camera* GraphicsThread::getCamera() const
     {
         return cameras[0];
     }
+    return nullptr;
 }
 
 
@@ -308,7 +313,11 @@ void GraphicsThread::updateGameStats()
     if (!m_gameStats)
         return;
 
-    m_gameStats->setText("Score: Player - 0 / Computer - 0");
+    std::string userMessage = "Score: Player - " + std::to_string(m_playerWins) + " / Computer - " + std::to_string(m_aiWins) + " / Cat's Game - " + std::to_string(m_catWins);
+    if (!m_userMessage.empty())
+        userMessage.append("\n    ***" + m_userMessage + "***");
+
+    m_gameStats->setText(userMessage);
 
     auto camera = getCamera();
     if (!camera)
@@ -417,4 +426,16 @@ void GraphicsThread::updateGamePieces()
         m_boardTransform->removeChild((*displayedMove).geode);
         displayedMove = m_displayedMoves.erase(displayedMove);
     }
+}
+
+void GraphicsThread::setUserMessage(const std::string& message)
+{
+    m_userMessage = message;
+}
+
+void GraphicsThread::handleScoreUpdated(uint64_t playerScore, uint64_t aiScore, uint64_t catScore)
+{
+    m_playerWins = playerScore;
+    m_aiWins = aiScore;
+    m_catWins = catScore;
 }

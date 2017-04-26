@@ -104,6 +104,7 @@ public:
 signals:
     void moveStored(const MoveStruct&);
     void boardCleared();
+    void scoreUpdated(uint64_t playerScore, uint64_t aiScore, uint64_t catScore);
 
 protected slots:
     void timeout();
@@ -121,4 +122,8 @@ protected:
 
     //if we do more reads than writes, this is a win
     mutable QReadWriteLock m_rwLock;
+
+    uint64_t m_playerWins;
+    uint64_t m_aiWins;
+    uint64_t m_catWins;
 };

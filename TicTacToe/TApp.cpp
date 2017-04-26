@@ -7,6 +7,7 @@ TApp::TApp(int argc, char *argv[]) : QApplication(argc, argv),
     m_gameManager(nullptr)
 {
     qRegisterMetaType<MoveStruct>("MoveStruct");
+    qRegisterMetaType<uint64_t>("uint64_t");
 
     m_gameManager = new GameMoveManager(this);
     m_gameManager->start();

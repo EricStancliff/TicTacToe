@@ -2,10 +2,15 @@
 
 #include <QDebug>
 
-GameMoveManager::GameMoveManager(QObject* parent) : QThread(parent), m_currentlyUsersTurn(true)
+GameMoveManager::GameMoveManager(QObject* parent) : QThread(parent), m_currentlyUsersTurn(true), m_playerWins(0), m_aiWins(0), m_catWins(0)
 {
     connect(&m_timer, &QTimer::timeout, this, &GameMoveManager::timeout);
     m_timer.start(2000);
+
+    //temp
+    m_playerWins = 2;
+    m_aiWins = 4;
+    m_catWins = 666;
 }
 
 GameMoveManager::~GameMoveManager()
@@ -62,7 +67,7 @@ bool GameMoveManager::storeUserMadeMove(const MoveStruct& move, std::string& err
     }
 
     auto movePosItr = std::lower_bound(m_currentMoves.begin(), m_currentMoves.end(), move);
-    if (movePosItr != m_currentMoves.end() && (*movePosItr) == move)
+    if (movePosItr != m_currentMoves.end() && ( (*movePosItr).xPos == move.xPos && (*movePosItr).yPos == move.yPos ))
     {
         errorMsg = "Square already taken, pick again!";
         return false;
@@ -111,6 +116,8 @@ MoveStruct GameMoveManager::makeNextAIMove()
 
     if (!moveFound)
     {
+        //todo, find winner
+        emit scoreUpdated(m_playerWins, m_aiWins, m_catWins);
         qWarning() << "Game Over!";
         m_currentMoves.clear();
         emit boardCleared();

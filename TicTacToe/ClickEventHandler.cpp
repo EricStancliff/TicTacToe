@@ -1,5 +1,6 @@
 #include "ClickEventHandler.h"
 #include "GameMoveManager.h"
+#include "GraphicsThread.h"
 #include "TApp.h"
 
 #include <QDebug>
@@ -52,7 +53,7 @@ bool ClickEventHandler::handle(const osgGA::GUIEventAdapter& ea, osgGA::GUIActio
             else
                 qWarning() << QString::fromStdString(errMsg);
 
-
+            tApp->getGraphicsThread()->setUserMessage(errMsg);
         }
     }
     break;

@@ -73,9 +73,12 @@ public:
     //add a task and block until it's completion
     void addTaskBlocking(std::function<void()> task);
 
+    void setUserMessage(const std::string& message);
+
 protected slots:
     void handleMoveStored(const MoveStruct& move);
     void handleBoardCleared();
+    void handleScoreUpdated(uint64_t playerScore, uint64_t aiScore, uint64_t catScore);
 
 protected:
     virtual void run();
@@ -124,4 +127,12 @@ protected:
 
     QFile m_xFile;
     QFile m_oFile;
+
+    std::string m_userMessage;
+
+    //we keep this locally instead of accessing directly from GMM because
+    //we don't want to hit a mutex every time we update our graphics.
+    uint64_t m_playerWins;
+    uint64_t m_aiWins;
+    uint64_t m_catWins;
 };
